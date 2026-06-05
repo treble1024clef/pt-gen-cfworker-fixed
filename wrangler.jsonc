@@ -1,0 +1,6 @@
+{
+    "$schema": "node_modules/wrangler/config-schema.json",
+    "name": "pt-gen-cfworker", // 你的 Worker 在 Cloudflare 上的名字，可以自定义
+    "main": "app.js", // 核心入口文件！根据你上张截图，这里改成你的核心 JS 文件名
+    "compatibility_date": "2026-06-05"
+}

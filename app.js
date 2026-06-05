@@ -25,8 +25,8 @@ export async function handleFetch(request, ctx = {}) {
     return handleOptions(request);
   }
 
-  const cache = globalThis.caches && globalThis.caches.default ? globalThis.caches.default : null;
-  let response = cache ? await cache.match(request) : null;
+  const hasCache = !!(globalThis.caches && globalThis.caches.default);
+  let response = hasCache ? await globalThis.caches.default.match(request) : null;
   const uri = new URL(request.url);
 
   if (!response) {
@@ -123,9 +123,9 @@ export async function handleFetch(request, ctx = {}) {
         }
       }
 
-      if (cache && request.method === "GET" && response && response.status === 200) {
-        const waitUntil = ctx.waitUntil || (() => {});
-        waitUntil(cache.put(request, response.clone()));
+      //  修改后的 Cache 写入逻辑
+      if (hasCache && request.method === "GET" && response && response.status === 200 && ctx && typeof ctx.waitUntil === "function") {
+        ctx.waitUntil(globalThis.caches.default.put(request, response.clone()));
       }
     } catch (e) {
       let err_return = {
@@ -171,3 +171,14 @@ function makeIndexResponse() {
     },
   });
 }
+
+// 加上这段官方标准的默认导出，作为 Worker 的流量入口
+export default {
+  async fetch(request, env, ctx) {
+    // 1. 把 Cloudflare 传入的全局环境变量 env 挂载到 globalThis 上，保持与原项目 getEnv() 兼容
+    globalThis.MIN_ENV = env;
+
+    // 2. 调用项目原本的 handleFetch 函数处理请求
+    return handleFetch(request, ctx);
+  }
+};
